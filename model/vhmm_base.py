@@ -31,7 +31,8 @@ class VHMMBase:
         '''
         log_prob = jnp.expand_dims(prev_log_prob, axis=2) + trans_log_prob \
             + jnp.expand_dims(obs_log_prob, axis=2)
-        return logsumexp(log_prob, axis=1)
+        result = logsumexp(log_prob, axis=1)
+        return result - logsumexp(result, axis=1)
 
     @staticmethod
     def _backward_one_step(next_log_prob, trans_log_prob, next_obs_log_prob):
@@ -42,7 +43,7 @@ class VHMMBase:
         :param next_obs_log_prob:
         :return:
         '''
-        log_prob = jnp.expand_dims(next_log_prob, axis=2) + trans_log_prob + \ 
+        log_prob = jnp.expand_dims(next_log_prob, axis=2) + trans_log_prob + \
             jnp.expand_dims(next_obs_log_prob, axis=1)
 
         return logsumexp(log_prob, axis=2)
@@ -51,14 +52,48 @@ class VHMMBase:
     def forward_step(init_log_prob, obs_log_probs, trans_log_prob):
 
         def scan_fn(log_prob, obs_log_prob):
-            result = VHMMBase._forward_one_step(log_prob, trans_log_prob, obs_log_prob)
+            result = VHMMBase._forward_one_step(log_prob, trans_log_prob, 
+                obs_log_prob)
             return (
                 result,
                 result
             )
 
-        forward_prob = lax.scan()
-        pass
+        _, forward_prob = lax.scan(scan_fn, init_log_prob, obs_log_probs)
+        return forward_prob
+
+    @staticmethod
+    def backward_step(init_log_prob, obs_log_probs, trans_log_prob):
+
+        def scan_fn(log_prob, obs_log_prob):
+            result = VHMMBase._backward_one_step(log_prob, trans_log_prob,
+                obs_log_prob)
+            return (
+                result,
+                result
+            )
+
+        _, backward_prob = lax.scan(scan_fn, init_log_prob, obs_log_probs)
+        return backward_prob
+
+    def e_step(self, X):
+
+        obs_log_probs = self.obs_log_prob(X)
+        trans_log_prob = self.trans_log_prob()
+
+        initial_forward = self.initial_log_prob(X)
+        forward_prob = self.forward_step(initial_forward, obs_log_probs, trans_log_prob)
+
+        initial_backward = jnp.ones(X.shape[0])
+        backward_prob = self.backward_step(initial_backward, obs_log_probs, trans_log_prob)
+
+        return forward_prob * backward_prob
+
+        
+
+
+        
+
 
     @staticmethod
     def viterbi(X):
