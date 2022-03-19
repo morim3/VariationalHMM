@@ -3,7 +3,7 @@ from jax.scipy.special import logsumexp
 from jax import lax
 
 
-class VHMMBase:
+class HMMBase:
     def __init__(self, cluster_num, initial_params):
         self.cluster_num = cluster_num
         self.params = initial_params.copy()
@@ -53,7 +53,7 @@ class VHMMBase:
     def forward_step(init_log_prob, obs_log_probs, trans_log_prob):
 
         def scan_fn(log_prob, obs_log_prob):
-            result, partition = VHMMBase._forward_one_step(log_prob, trans_log_prob, 
+            result, partition = HMMBase._forward_one_step(log_prob, trans_log_prob, 
                 obs_log_prob)
             normed_result = result - partition
             return (
@@ -68,7 +68,7 @@ class VHMMBase:
     def backward_step(init_log_prob, obs_log_probs, trans_log_prob):
 
         def scan_fn(log_prob, obs_log_prob):
-            result = VHMMBase._backward_one_step(log_prob, trans_log_prob,
+            result = HMMBase._backward_one_step(log_prob, trans_log_prob,
                 obs_log_prob)
             return (
                 result,
@@ -81,9 +81,9 @@ class VHMMBase:
     def e_step(self, X):
 
         obs_log_probs = self.obs_log_prob(X)
-        trans_log_prob = self.trans_log_prob()
+        trans_log_prob = self.trans_log_prob
 
-        initial_forward = self.initial_log_prob(X)
+        initial_forward = self.initial_log_prob
         forward_prob = self.forward_step(initial_forward, obs_log_probs, trans_log_prob)
 
         initial_backward = jnp.ones(X.shape[0])
@@ -92,12 +92,46 @@ class VHMMBase:
         return forward_prob * backward_prob
 
         
-    def 
+    @staticmethod
+    def _viterbi_one_step(a, b):
+        """
+        :params: a: jnp array, shape (*, batch_size, hidden, hidden)
+        :params: b: jnp array, shape (*, batch_size, hidden, hidden)
+        """
+        if len(a) == 0:
+            return a
+        return jnp.max(jnp.expand_dims(a, axis=4) + jnp.expand_dims(b, axis=2), axis=3)
+
+    @staticmethod
+    def _viterbi(initial_log_prob, trans_log_prob, obs_log_prob):
+        """
+        initial_log_prob: jnp array, shape (hidden)
+        trnas_log_prob: jnp array, shape(hidden, hidden)
+        obs_log_prob: jnp array, shape(time, batch_size, hidden)
+        """
+        obs_plus_trans = jnp.expand_dims(obs_log_prob[1:], axis=-1) + jnp.expand_dims(trans_log_prob, axis=(0, 1))   
+        obs_plus_initial = jnp.expand_dims(obs_log_prob[0], axis=-1) + jnp.expand_dims(initial_log_prob, axis=(0, 1, 2))
+        elem = jnp.concatenate([obs_plus_initial, obs_plus_trans])
+        forward = lax.associative_scan(HMMBase._viterbi_one_step, elem)
+
+        obs_plus_trans = jnp.expand_dims(obs_log_prob[1:], axis=2) + jnp.expand_dims(trans_log_prob, axis=(0, 1,))
+        elem = jnp.concatenate([obs_plus_trans, jnp.zeros_like(obs_plus_trans[0])[jnp.newaxis]], axis=0)
+        backward = lax.associative_scan(HMMBase._viterbi_one_step, elem, reverse=True)
+
+        result = jnp.argmax(forward[:, :, 0] + backward[:, :, :, 0], axis=2)
+        return result
+        
+    def viterbi(self, X):
+        initial_log_prob = self.initial_log_prob
+        trans_log_prob = self.trans_log_prob
+        obs_log_prob = self.obs_log_prob(X)
+
+        return self._viterbi(initial_log_prob, trans_log_prob, obs_log_prob)
+
+
+        
 
         
 
 
-    @staticmethod
-    def viterbi(X):
-        pass
   
