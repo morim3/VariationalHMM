@@ -23,6 +23,13 @@ class TestVHMMBase(TestCase):
         result = HMMBase._viterbi(jnp.log(jnp.array([0.6, 0.4])), jnp.log(jnp.array([[1, 0], [0, 1]])), test_obs) 
         self.assertEqual(result[0, 0], 0)
 
+    def test_expectation(self):
+        test_obs = jnp.ones((10, 3, 2))
+        result = HMMBase._e_step(test_obs, jnp.log(jnp.array([0.1, 0.9])), jnp.log(jnp.array([[1, 0], [0, 1]])))
+        print(result)
+
+
+
 
 if __name__ == "__main__":
     unittest.main()

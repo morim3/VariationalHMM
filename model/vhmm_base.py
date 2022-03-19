@@ -22,21 +22,21 @@ class HMMBase:
         pass
 
     @staticmethod
-    def _forward_one_step(prev_log_prob, trans_log_prob, obs_log_prob, ):
+    def _forward_one_step(alpha, trans_log_prob, obs_log_prob, ):
         '''
-        :param prev_log_prob: jnp array, shape (batch_size, hidden_num)
+        :param alpha: jnp array, shape (batch_size, hidden_num)
         :param trans_log_prob: jnp array, shape (hidden_num, hidden_num)
         :param obs_log_prob: jnp array, shape (batch_size, hidden_num)
         :return:
         '''
-        log_prob = jnp.expand_dims(prev_log_prob, axis=2) + trans_log_prob \
+        log_prob = jnp.expand_dims(alpha, axis=2) + jnp.expand_dims(trans_log_prob, axis=0) \
             + jnp.expand_dims(obs_log_prob, axis=2)
         result = logsumexp(log_prob, axis=1)
-        partition = logsumexp(result, axis=1)
-        return result, partition
+        cond_log_likelihood = logsumexp(result, axis=1)
+        return result, cond_log_likelihood
 
     @staticmethod
-    def _backward_one_step(next_log_prob, trans_log_prob, next_obs_log_prob):
+    def _backward_one_step(beta, trans_log_prob, obs_log_prob, cond_log_likelihood):
         '''
 
         :param next_log_prob:
@@ -44,10 +44,12 @@ class HMMBase:
         :param next_obs_log_prob:
         :return:
         '''
-        log_prob = jnp.expand_dims(next_log_prob, axis=2) + trans_log_prob + \
-            jnp.expand_dims(next_obs_log_prob, axis=1)
+        log_prob = jnp.expand_dims(beta, axis=1) + jnp.expand_dims(trans_log_prob, axis=0) + \
+            jnp.expand_dims(obs_log_prob, axis=1)
 
-        return logsumexp(log_prob, axis=2)
+        result = logsumexp(log_prob, axis=2) - cond_log_likelihood
+
+        return result
 
     @staticmethod
     def forward_step(init_log_prob, obs_log_probs, trans_log_prob):
@@ -65,31 +67,44 @@ class HMMBase:
         return forward_prob, cond_log_likelihood
 
     @staticmethod
-    def backward_step(init_log_prob, obs_log_probs, trans_log_prob):
+    def backward_step(obs_log_probs, trans_log_prob, cond_log_likelihoods):
 
-        def scan_fn(log_prob, obs_log_prob):
-            result = HMMBase._backward_one_step(log_prob, trans_log_prob,
-                obs_log_prob)
+        def scan_fn(beta, obs_log_prob, cond_log_likelihood):
+            result = HMMBase._backward_one_step(beta, trans_log_prob,
+                obs_log_prob, cond_log_likelihood)
             return (
                 result,
                 result
             )
 
-        _, backward_prob = lax.scan(scan_fn, init_log_prob, obs_log_probs)
+        _, backward_prob = lax.scan(scan_fn, jnp.zeros_like(obs_log_probs[0]), [obs_log_probs, cond_log_likelihoods], reverse=True)
         return backward_prob
+    
+    @staticmethod
+    def _e_step(obs_log_probs, trans_log_prob, initial_log_prob):
+        """
+        :params: obs_log_probs: shape(time, batch, hidden)
+        """
 
-    def e_step(self, X):
+        initial_forward = obs_log_probs[0] + jnp.expand_dims(initial_log_prob, axis=(0, 1))
+        initial_log_likelihood = logsumexp(initial_forward, axis=2)
+        initial_forward = initial_forward - initial_log_likelihood
 
-        obs_log_probs = self.obs_log_prob(X)
-        trans_log_prob = self.trans_log_prob
+        forward_prob, cond_log_likelihoods = HMMBase.forward_step(initial_forward, obs_log_probs[1:], trans_log_prob)
+        forward_prob = jnp.concatenate([initial_forward[jnp.newaxis], forward_prob])
+        cond_log_likelihoods = jnp.concatenate([initial_log_likelihood[jnp.newaxis], cond_log_likelihoods])
 
-        initial_forward = self.initial_log_prob
-        forward_prob = self.forward_step(initial_forward, obs_log_probs, trans_log_prob)
-
-        initial_backward = jnp.ones(X.shape[0])
-        backward_prob = self.backward_step(initial_backward, obs_log_probs, trans_log_prob)
+        backward_prob = HMMBase.backward_step(obs_log_probs, trans_log_prob, cond_log_likelihoods)
 
         return forward_prob * backward_prob
+
+    def e_step(self, X):
+        obs_log_probs = self.obs_log_prob(X)
+        trans_log_prob = self.trans_log_prob()
+        initial_log_prob = self.initial_log_prob()
+
+        return self._e_step(obs_log_probs, trans_log_prob, initial_log_prob)
+        
 
         
     @staticmethod
