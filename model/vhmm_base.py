@@ -32,7 +32,8 @@ class VHMMBase:
         log_prob = jnp.expand_dims(prev_log_prob, axis=2) + trans_log_prob \
             + jnp.expand_dims(obs_log_prob, axis=2)
         result = logsumexp(log_prob, axis=1)
-        return result - logsumexp(result, axis=1)
+        partition = logsumexp(result, axis=1)
+        return result, partition
 
     @staticmethod
     def _backward_one_step(next_log_prob, trans_log_prob, next_obs_log_prob):
@@ -52,15 +53,16 @@ class VHMMBase:
     def forward_step(init_log_prob, obs_log_probs, trans_log_prob):
 
         def scan_fn(log_prob, obs_log_prob):
-            result = VHMMBase._forward_one_step(log_prob, trans_log_prob, 
+            result, partition = VHMMBase._forward_one_step(log_prob, trans_log_prob, 
                 obs_log_prob)
+            normed_result = result - partition
             return (
-                result,
-                result
+                normed_result,
+                [normed_result, partition]
             )
 
-        _, forward_prob = lax.scan(scan_fn, init_log_prob, obs_log_probs)
-        return forward_prob
+        _, [forward_prob, cond_log_likelihood] = lax.scan(scan_fn, init_log_prob, obs_log_probs)
+        return forward_prob, cond_log_likelihood
 
     @staticmethod
     def backward_step(init_log_prob, obs_log_probs, trans_log_prob):
@@ -90,7 +92,7 @@ class VHMMBase:
         return forward_prob * backward_prob
 
         
-
+    def 
 
         
 
