@@ -5,11 +5,6 @@ import jax.numpy as jnp
 
 
 class TestVHMMBase(TestCase):
-    def test__forward_one_step(self):
-        self.fail()
-
-    def test__backward_one_step(self):
-        self.fail()
 
     def test_viterbi(self):
         test_obs = jnp.ones((10, 3, 2))
