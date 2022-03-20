@@ -49,7 +49,7 @@ class HMMBase:
         log_prob = jnp.expand_dims(beta, axis=1) + jnp.expand_dims(trans_log_prob, axis=0) + \
             jnp.expand_dims(obs_log_prob, axis=1)
 
-        result = logsumexp(log_prob, axis=2) - cond_log_likelihood
+        result = logsumexp(log_prob, axis=2) - jnp.expand_dims(cond_log_likelihood, axis=-1)
 
         return result
 
@@ -60,7 +60,7 @@ class HMMBase:
         def scan_fn(log_prob, obs_log_prob):
             result, partition = HMMBase._forward_one_step(log_prob, trans_log_prob, 
                 obs_log_prob)
-            normed_result = result - partition
+            normed_result = result - jnp.expand_dims(partition, axis=-1)
             return (
                 normed_result,
                 [normed_result, partition]
@@ -73,7 +73,9 @@ class HMMBase:
     @jit
     def backward_step(obs_log_probs, trans_log_prob, cond_log_likelihoods):
 
-        def scan_fn(beta, obs_log_prob, cond_log_likelihood):
+        def scan_fn(beta, params):
+            obs_log_prob = params[0] 
+            cond_log_likelihood = params[1]
             result = HMMBase._backward_one_step(beta, trans_log_prob,
                 obs_log_prob, cond_log_likelihood)
             return (
@@ -91,9 +93,9 @@ class HMMBase:
         :params: obs_log_probs: shape(time, batch, hidden)
         """
 
-        initial_forward = obs_log_probs[0] + jnp.expand_dims(initial_log_prob, axis=(0, 1))
-        initial_log_likelihood = logsumexp(initial_forward, axis=2)
-        initial_forward = initial_forward - initial_log_likelihood
+        initial_forward = obs_log_probs[0] + jnp.expand_dims(initial_log_prob, axis=(0))
+        initial_log_likelihood = logsumexp(initial_forward, axis=-1)
+        initial_forward = initial_forward - jnp.expand_dims(initial_log_likelihood, axis=1)
 
         forward_prob, cond_log_likelihoods = HMMBase.forward_step(initial_forward, obs_log_probs[1:], trans_log_prob)
         forward_prob = jnp.concatenate([initial_forward[jnp.newaxis], forward_prob])
