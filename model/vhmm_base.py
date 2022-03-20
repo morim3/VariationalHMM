@@ -21,8 +21,8 @@ class HMMBase:
             return self.viterbi(X)
         pass
 
-    @jit
     @staticmethod
+    @jit
     def _forward_one_step(alpha, trans_log_prob, obs_log_prob, ):
         '''
         :param alpha: jnp array, shape (batch_size, hidden_num)
