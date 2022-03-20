@@ -1,6 +1,6 @@
 import jax.numpy as jnp
 from jax.scipy.special import logsumexp
-from jax import lax
+from jax import lax, jit
 
 
 class HMMBase:
@@ -21,6 +21,7 @@ class HMMBase:
             return self.viterbi(X)
         pass
 
+    @jit
     @staticmethod
     def _forward_one_step(alpha, trans_log_prob, obs_log_prob, ):
         '''
@@ -36,6 +37,7 @@ class HMMBase:
         return result, cond_log_likelihood
 
     @staticmethod
+    @jit
     def _backward_one_step(beta, trans_log_prob, obs_log_prob, cond_log_likelihood):
         '''
 
@@ -52,6 +54,7 @@ class HMMBase:
         return result
 
     @staticmethod
+    @jit
     def forward_step(init_log_prob, obs_log_probs, trans_log_prob):
 
         def scan_fn(log_prob, obs_log_prob):
@@ -67,6 +70,7 @@ class HMMBase:
         return forward_prob, cond_log_likelihood
 
     @staticmethod
+    @jit
     def backward_step(obs_log_probs, trans_log_prob, cond_log_likelihoods):
 
         def scan_fn(beta, obs_log_prob, cond_log_likelihood):
@@ -79,8 +83,9 @@ class HMMBase:
 
         _, backward_prob = lax.scan(scan_fn, jnp.zeros_like(obs_log_probs[0]), [obs_log_probs, cond_log_likelihoods], reverse=True)
         return backward_prob
-    
+
     @staticmethod
+    @jit
     def _e_step(obs_log_probs, trans_log_prob, initial_log_prob):
         """
         :params: obs_log_probs: shape(time, batch, hidden)
@@ -104,10 +109,9 @@ class HMMBase:
         initial_log_prob = self.initial_log_prob()
 
         return self._e_step(obs_log_probs, trans_log_prob, initial_log_prob)
-        
 
-        
     @staticmethod
+    @jit
     def _viterbi_one_step(a, b):
         """
         :params: a: jnp array, shape (*, batch_size, hidden, hidden)
@@ -118,6 +122,7 @@ class HMMBase:
         return jnp.max(jnp.expand_dims(a, axis=4) + jnp.expand_dims(b, axis=2), axis=3)
 
     @staticmethod
+    @jit
     def _viterbi(initial_log_prob, trans_log_prob, obs_log_prob):
         """
         initial_log_prob: jnp array, shape (hidden)
