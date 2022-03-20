@@ -7,7 +7,7 @@ import jax.numpy as jnp
 class TestVHMMBase(TestCase):
 
     def test_viterbi(self):
-        test_obs = jnp.ones((1000, 100, 2))
+        test_obs = jnp.ones((10, 3, 2))
         result = HMMBase._viterbi(jnp.log(jnp.array([0.2, 0.8])), jnp.log(jnp.array([[1, 0], [0, 1]])), test_obs)  
         
         self.assertEqual(result.shape[0], 10)
