@@ -65,7 +65,7 @@ class PoissonVHMM(VHMMBase):
         :return:
         """
         term1 = q_a * jnp.log(q_b) - gammaln(q_a) - q_a + (q_a - 1)(digamma(q_a) - digamma(q_b))
-        term2 = p_a * jnp.log(q_b) - gammaln(p_a) - p_b * q_a / q_b + (p_a - 1)(digamma(q_a) - digamma(q_b))
+        term2 = p_a * jnp.log(q_b) - gammaln(p_a) - p_b * q_a / q_b + (p_a - 1)*(digamma(q_a) - digamma(q_b))
         return jnp.sum(term2 - term1)
 
     def elbo(self, obs):
