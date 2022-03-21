@@ -4,7 +4,7 @@ import jax.numpy as jnp
 from jax.scipy.special import logsumexp
 from jax import lax, jit
 from jax.lax import lgamma
-from jax.scipy.special import digamma, xlogy
+from jax.scipy.special import digamma, xlogx
 
 
 class HMMBase:
@@ -233,7 +233,7 @@ class VHMMBase(HMMBase):
         :param p: (..., category_num)
         :return:
         """
-        return jnp.sum(xlogy(q, q) - q * log_p)
+        return jnp.sum(xlogx(q) - q * log_p)
 
     def _kl_initial_state(self):
         return VHMMBase._kl_dirichlet_dirichlet(self.init_state_posterior, self.init_state_prior)
