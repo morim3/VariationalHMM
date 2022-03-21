@@ -24,7 +24,7 @@ class PoissonVHMM(VHMMBase):
     def _obs_log_prob(obs, poisson_posterior_a, poisson_posterior_b):
         term1 = obs * jnp.expand_dims(digamma(poisson_posterior_a) - jnp.log(poisson_posterior_b), axis=(0, 1))
         term2 = - (poisson_posterior_a / poisson_posterior_b)[jnp.newaxis, jnp.newaxis]
-        term3 = - gammaln(obs)[..., jnp.newaxis]
+        term3 = - gammaln(obs)
         return term1 + term2 + term3
 
     def obs_log_prob(self, obs):
