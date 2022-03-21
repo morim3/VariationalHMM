@@ -233,7 +233,7 @@ class VHMMBase(HMMBase):
         :param p: (..., category_num)
         :return:
         """
-        return jnp.sum(xlogy(q, q) - xlogy(q, p))
+        return jnp.sum(xlogy(q, q) - q * log_p)
 
     def _kl_initial_state(self):
         return self._kl_dirichlet_dirichlet(self.init_state_posterior, self.init_state_prior)
@@ -253,7 +253,7 @@ class VHMMBase(HMMBase):
         q = gamma[0]
         term1 = VHMMBase._kl_categorical(q, log_p)
 
-        p = self.trans_log_prob()
+        log_p = self.trans_log_prob()
         q = xi
-        term2 = VHMMBase._kl_categorical(q, p)
+        term2 = VHMMBase._kl_categorical(q, log_p)
         return term1 + term2
