@@ -136,10 +136,10 @@ class HMMBase:
         trans_log_prob = self.trans_log_prob()
         initial_log_prob = self.initial_log_prob()
 
-        forward, backward, scale = HMMBase._e_step(obs_log_probs, initial_log_prob, trans_log_prob, )
+        forward, backward, scale = self._e_step(obs_log_probs, initial_log_prob, trans_log_prob, )
 
-        gamma = HMMBase._calc_gamma(forward, backward)
-        xi = HMMBase._calc_xi(forward, backward, scale, trans_log_prob, obs_log_probs)
+        gamma = self._calc_gamma(forward, backward)
+        xi = self._calc_xi(forward, backward, scale, trans_log_prob, obs_log_probs)
         return gamma, xi
 
     @staticmethod
@@ -209,7 +209,7 @@ class VHMMBase(HMMBase):
 
         :return:
         """
-        self.init_state_posterior = jnp.sum(gamma, axis=0) + self.init_state_prior
+        self.init_state_posterior = jnp.sum(gamma, axis=0, 1) + self.init_state_prior
 
         self.transition_posterior = jnp.sum(xi, axis=(0, 1)) + self.transition_prior
 
