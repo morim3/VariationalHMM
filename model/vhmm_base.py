@@ -3,7 +3,7 @@ from abc import abstractmethod
 import jax.numpy as jnp
 from jax.scipy.special import logsumexp
 from jax import lax, jit
-from lax import lgamma
+from jax.lax import lgamma
 from jax.scipy.special import digamma
 
 
