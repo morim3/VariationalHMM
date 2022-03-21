@@ -251,9 +251,9 @@ class VHMMBase(HMMBase):
         """
         log_p = self.initial_log_prob()
         q = gamma[0]
-        term1 = self._kl_categorical(q, log_p)
+        term1 = VHMMBase._kl_categorical(q, log_p)
 
         p = self.trans_log_prob()
         q = xi
-        term2 = self._kl_categorical(q, p)
+        term2 = VHMMBase._kl_categorical(q, p)
         return term1 + term2
