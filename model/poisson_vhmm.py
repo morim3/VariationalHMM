@@ -44,6 +44,7 @@ class PoissonVHMM(VHMMBase):
 
         for i in range(self.iter_max):
             gamma, xi = self.e_step(obs)
+            print(xi)
             self.maximize_transitions(gamma, xi)
             self.maximize_observations(obs, gamma)
             elbo = self.elbo(obs)
@@ -68,7 +69,6 @@ class PoissonVHMM(VHMMBase):
 
     def elbo(self, obs):
         gamma, xi = self.e_step(obs)
-        print("dsfadf")
         return (jnp.sum(self.obs_log_prob(obs) * gamma)
                 - self._kl_lambda(self.poisson_posterior_a,
                                   self.poisson_posterior_b,
