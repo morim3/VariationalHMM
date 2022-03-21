@@ -136,6 +136,8 @@ class HMMBase:
         trans_log_prob = self.trans_log_prob()
         initial_log_prob = self.initial_log_prob()
 
+        print(initial_log_prob)
+
         forward, backward, scale = self._e_step(obs_log_probs, trans_log_prob, initial_log_prob)
 
         gamma = self._calc_gamma(forward, backward)
