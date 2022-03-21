@@ -46,6 +46,7 @@ class PoissonVHMM(VHMMBase):
             gamma, xi = self.e_step(obs)
             self.maximize_transitions(gamma, xi)
             self.maximize_observations(obs, gamma)
+            print(self.transition_posterior, self.init_state_posterior)
             elbo = self.elbo(obs)
             print(elbo)
 
