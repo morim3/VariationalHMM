@@ -236,10 +236,10 @@ class VHMMBase(HMMBase):
         return jnp.sum(xlogy(q, q) - q * log_p)
 
     def _kl_initial_state(self):
-        return self._kl_dirichlet_dirichlet(self.init_state_posterior, self.init_state_prior)
+        return VHMMBase._kl_dirichlet_dirichlet(self.init_state_posterior, self.init_state_prior)
 
     def _kl_state_transition(self):
-        return jnp.sum(jnp.array([self._kl_dirichlet_dirichlet(q, p)
+        return jnp.sum(jnp.array([VHMMBase._kl_dirichlet_dirichlet(q, p)
                                   for q, p in zip(self.transition_posterior, self.transition_prior)]))
 
     def _kl_hidden_state(self, gamma, xi):
