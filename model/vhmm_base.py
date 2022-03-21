@@ -233,6 +233,7 @@ class VHMMBase(HMMBase):
         :param p: (..., category_num)
         :return:
         """
+        print("q", q, "log_p", log_p)
         return jnp.sum(xlogx(q) - q * log_p)
 
     def _kl_initial_state(self):
