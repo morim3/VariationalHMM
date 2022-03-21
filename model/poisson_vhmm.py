@@ -75,7 +75,7 @@ class PoissonVHMM(VHMMBase):
                               self.poisson_prior_b))
         print(self._kl_hidden_state(gamma, xi))
         print(self._kl_initial_state())
-        print(_kl_state_transition())
+        print(self._kl_state_transition())
 
         return (jnp.sum(self.obs_log_prob(obs) * gamma)
                 - self._kl_lambda(self.poisson_posterior_a,
