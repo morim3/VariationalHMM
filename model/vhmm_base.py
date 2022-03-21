@@ -11,20 +11,6 @@ class HMMBase:
     def __init__(self, ):
         pass
 
-    def fit(self, obs):
-
-        obs_log_probs = self.obs_log_prob(obs)
-        trans_log_prob = self.trans_log_prob()
-        initial_log_prob = self.initial_log_prob()
-
-        forward, backward, log_scaling_factors = self._e_step(obs_log_probs, initial_log_prob, trans_log_prob)
-
-        self._maximize_transitions(forward, backward, trans_log_prob, obs_log_probs, log_scaling_factors)
-
-        self._maximize_obs_params(forward, backward)
-
-        pass
-
     def predict(self, obs, viterbi=False):
 
         if not viterbi:
