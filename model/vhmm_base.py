@@ -178,7 +178,7 @@ class HMMBase:
         trans_log_prob = self.trans_log_prob()
         obs_log_prob = self.obs_log_prob(obs)
 
-        return self._viterbi(initial_log_prob, trans_log_prob, obs_log_prob)
+        return HMMBase._viterbi(initial_log_prob, trans_log_prob, obs_log_prob)
 
 
 class VHMMBase(HMMBase):
