@@ -209,7 +209,7 @@ class VHMMBase(HMMBase):
 
         :return:
         """
-        self.init_state_posterior = jnp.sum(gamma, axis=0, 1) + self.init_state_prior
+        self.init_state_posterior = jnp.sum(gamma, axis=(0, 1)) + self.init_state_prior
 
         self.transition_posterior = jnp.sum(xi, axis=(0, 1)) + self.transition_prior
 
