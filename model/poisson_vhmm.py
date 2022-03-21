@@ -68,6 +68,15 @@ class PoissonVHMM(VHMMBase):
 
     def elbo(self, obs):
         gamma, xi = self.e_step(obs)
+        print((jnp.sum(self.obs_log_prob(obs) * gamma)))
+        print(self._kl_lambda(self.poisson_posterior_a,
+                              self.poisson_posterior_b,
+                              self.poisson_prior_a,
+                              self.poisson_prior_b))
+        print(self._kl_hidden_state(gamma, xi))
+        print(self._kl_initial_state())
+        print(_kl_state_transition())
+
         return (jnp.sum(self.obs_log_prob(obs) * gamma)
                 - self._kl_lambda(self.poisson_posterior_a,
                                   self.poisson_posterior_b,
