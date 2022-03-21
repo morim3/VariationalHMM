@@ -54,7 +54,6 @@ class PoissonVHMM(VHMMBase):
 
 
     @staticmethod
-    @jit
     def _kl_lambda(q_a, q_b, p_a, p_b):
         """
 
