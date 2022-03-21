@@ -40,21 +40,6 @@ class TestVHMMBase(TestCase):
         self.assertTrue(hidden[-1, 0, 1] < hidden[-1, 0, 0])
         self.assertTrue(jnp.all(jnp.abs(jnp.sum(hidden, axis=-1) - jnp.ones_like(hidden[..., 0])) < 1e-6))
 
-    def test_trans_maximization(self):
-        model = VHMMBase(jnp.array([1, 1]), jnp.array([[1, 1], [1, 1]]))
-        test_obs = np.zeros((10, 3, 2))
-        test_obs[:5, :, 0] = -1.
-        test_obs[5:, :, 0] = 1.
-        test_obs = jnp.array(test_obs)
-
-        initial = jnp.log(jnp.array([1, 0]))
-        transition = jnp.log(jnp.array([[0.2, 0.8], [0, 1]]))
-        forward, backward, log_scaling = model._e_step(test_obs, initial, transition, )
-
-        model._maximize_transitions(forward, backward, transition, test_obs, log_scaling)
-        print(model.trans_log_prob(), model.initial_log_prob())
-
-
 
 if __name__ == "__main__":
     unittest.main()
