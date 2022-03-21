@@ -1,3 +1,4 @@
+from jax import jit
 from jax.scipy.special import digamma, gammaln
 import jax.numpy as jnp
 
@@ -18,13 +19,18 @@ class PoissonVHMM(VHMMBase):
         self.iter_max = iter_max
         self.converge_threshold = 1e-3
 
-    def obs_log_prob(self, obs):
-        term1 = obs * jnp.expand_dims(digamma(self.poisson_posterior_a) - jnp.log(self.poisson_posterior_b), axis=(0, 1))
-        term2 = - (self.poisson_posterior_a / self.poisson_posterior_b)[jnp.newaxis, jnp.newaxis]
+    @staticmethod
+    @jit
+    def _obs_log_prob(obs, poisson_posterior_a, poisson_posterior_b):
+        term1 = obs * jnp.expand_dims(digamma(poisson_posterior_a) - jnp.log(poisson_posterior_b), axis=(0, 1))
+        term2 = - (poisson_posterior_a / poisson_posterior_b)[jnp.newaxis, jnp.newaxis]
         term3 = - gammaln(obs)[..., jnp.newaxis]
         return term1 + term2 + term3
 
-    def _maximize_observations(self, obs, gamma):
+    def obs_log_prob(self, obs):
+        return self._obs_log_prob(obs, self.poisson_posterior_a, self.poisson_posterior_b)
+
+    def maximize_observations(self, obs, gamma):
         """
 
         :param obs: jnp array, shape (time, batch, hidden)
@@ -35,8 +41,36 @@ class PoissonVHMM(VHMMBase):
         self.poisson_posterior_b = jnp.sum(gamma, axis=(0, 1)) + self.poisson_prior_b
 
     def fit(self, obs):
-        pass
 
-    def variational_lower_bound(self):
-        pass
+        for i in range(self.iter_max):
+            gamma, xi = self.e_step(obs)
+            self.maximize_transitions(gamma, xi)
+            self.maximize_observations(obs, gamma)
+            elbo = self.elbo(obs)
+            print(elbo)
 
+        print(gamma)
+        print(self.viterbi(obs))
+
+
+    @staticmethod
+    @jit
+    def _kl_lambda(q_a, q_b, p_a, p_b):
+        """
+
+        :param q_a: (hidden)
+        :param q_b: (hidden)
+        :param p_a: (1)
+        :param p_b: (1)
+        :return:
+        """
+        term1 = q_a * jnp.log(q_b) - gammaln(q_a) - q_a + (q_a - 1)(digamma(q_a) - digamma(q_b))
+        term2 = p_a * jnp.log(q_b) - gammaln(p_a) - p_b * q_a / q_b + (p_a - 1)(digamma(q_a) - digamma(q_b))
+        return jnp.sum(term2 - term1)
+
+    def elbo(self, obs):
+        gamma, xi = self.e_step(obs)
+        return (jnp.sum(self.obs_log_prob(obs) * gamma) - self._kl_lambda()
+                - self._kl_hidden_state(gamma, xi)
+                - self._kl_initial_state()
+                - self._kl_state_transition())

@@ -3,6 +3,7 @@ from abc import abstractmethod
 import jax.numpy as jnp
 from jax.scipy.special import logsumexp
 from jax import lax, jit
+from lax import lgamma
 from jax.scipy.special import digamma
 
 
@@ -53,7 +54,7 @@ class HMMBase:
         :param obs_log_prob: jnp array, shape (batch_size, hidden_num)
         :return:
         '''
-        log_prob = jnp.expand_dims(alpha, axis=2) + jnp.expand_dims(trans_log_prob, axis=0) \
+        log_prob = jnp.expand_dims(alpha, axis=2) + jnp.expand_dims(trans_log_prob, axis=0)
 
         result = logsumexp(log_prob, axis=1) + obs_log_prob
         cond_log_likelihood = logsumexp(result, axis=1)
@@ -133,12 +134,27 @@ class HMMBase:
 
         return forward_log_probs, backward_log_probs, cond_log_likelihoods
 
+    @staticmethod
+    @jit
+    def _calc_gamma(forward, backward):
+        return jnp.exp(forward + backward)
+
+    @staticmethod
+    @jit
+    def _calc_xi(forward, backward, scale, trans_log_prob, obs_log_probs):
+        return jnp.exp(forward[:-1][..., jnp.newaxis] + jnp.expand_dims(trans_log_prob, axis=(0, 1)) \
+                       + (obs_log_probs[1:] + backward[1:] + scale[1:][..., jnp.newaxis])[..., jnp.newaxis, :])
+
     def e_step(self, obs):
         obs_log_probs = self.obs_log_prob(obs)
         trans_log_prob = self.trans_log_prob()
         initial_log_prob = self.initial_log_prob()
 
-        return self._e_step(obs_log_probs, trans_log_prob, initial_log_prob)
+        forward, backward, scale = self._e_step(obs_log_probs, trans_log_prob, initial_log_prob)
+
+        gamma = self._calc_gamma(forward, backward)
+        xi = self._calc_xi(forward, backward, scale, trans_log_prob, obs_log_probs)
+        return gamma, xi
 
     @staticmethod
     @jit
@@ -200,21 +216,60 @@ class VHMMBase(HMMBase):
     def initial_log_prob(self):
         return digamma(self.init_state_prior) - digamma(jnp.sum(self.init_state_prior))
 
-    def _maximize_transitions(self, forward, backward, transition_log_prob, obs_log_probs, log_scaling_factors):
+    def maximize_transitions(self, gamma, xi):
         """
+        :param gamma: shape (time, batch, hidden)
+        :param xi: (time, batch, hidden, hidden)
 
-        :param forward: shape (time, batch, hidden)
-        :param backward: (time, batch, hidden)
-        :param transition_log_prob: (hidden, hidden)
-        :param obs_log_probs: (time, batch, hidden)
-        :param log_scaling_factors: (time, batch, )
         :return:
         """
-        self.init_state_posterior = jnp.sum(jnp.exp(forward[0] + backward[0]), axis=0) + self.init_state_prior
-        xi = forward[:-1][..., jnp.newaxis] + jnp.expand_dims(transition_log_prob, axis=(0, 1)) \
-             + (obs_log_probs[1:] + backward[1:] + log_scaling_factors[1:][..., jnp.newaxis])[..., jnp.newaxis, :]
-        self.transition_posterior = jnp.sum(jnp.exp(xi), axis=(0, 1)) + self.transition_prior
+        self.init_state_posterior = jnp.sum(gamma, axis=0) + self.init_state_prior
+
+        self.transition_posterior = jnp.sum(xi, axis=(0, 1)) + self.transition_prior
 
     @abstractmethod
     def obs_log_prob(self, obs):
         raise NotImplementedError
+
+    @staticmethod
+    @jit
+    def _kl_dirichlet_dirichlet(q, p):
+        term1 = lgamma(jnp.sum(q)) - jnp.sum(lgamma(q))
+        term2 = - lgamma(jnp.sum(p)) + jnp.sum(lgamma(p))
+        term3 = jnp.sum((p - q) * (digamma(q) - digamma(jnp.sum(q))))
+        return term1 + term2 + term3
+
+    @staticmethod
+    @jit
+    def _kl_categorical(q, log_p):
+        """
+
+        :param q: (..., category_num)
+        :param p: (..., category_num)
+        :return:
+        """
+
+        return jnp.sum(q * jnp.log(q) - q * log_p)
+
+    def _kl_initial_state(self):
+        return self._kl_dirichlet_dirichlet(self.init_state_posterior, self.init_state_prior)
+
+    def _kl_state_transition(self):
+        return jnp.sum(jnp.array([self._kl_dirichlet_dirichlet(q, p)
+                                  for q, p in zip(self.transition_posterior, self.transition_prior)]))
+
+    def _kl_hidden_state(self, gamma, xi):
+        """
+
+        :param gamma: shape (time, batch, hidden)
+        :param xi: (time-1, batch, hidden, hidden)
+        :return :
+        """
+        log_p = self.initial_log_prob()
+        q = gamma[0]
+        term1 = self._kl_categorical(q, log_p)
+
+        p = self.trans_log_prob()
+        q = xi
+        term2 = self._kl_categorical(q, p)
+        return term1 + term2
