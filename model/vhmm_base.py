@@ -214,7 +214,7 @@ class VHMMBase(HMMBase):
                - digamma(jnp.sum(self.transition_posterior, axis=1))[:, jnp.newaxis]
 
     def initial_log_prob(self):
-        return digamma(self.init_state_prior) - digamma(jnp.sum(self.init_state_prior))
+        return digamma(self.init_state_posterior) - digamma(jnp.sum(self.init_state_posterior))
 
     def maximize_transitions(self, gamma, xi):
         """
