@@ -138,8 +138,8 @@ class HMMBase:
 
         forward, backward, scale = HMMBase._e_step(obs_log_probs, initial_log_prob, trans_log_prob, )
 
-        gamma = self._calc_gamma(forward, backward)
-        xi = self._calc_xi(forward, backward, scale, trans_log_prob, obs_log_probs)
+        gamma = HMMBase._calc_gamma(forward, backward)
+        xi = HMMBase._calc_xi(forward, backward, scale, trans_log_prob, obs_log_probs)
         return gamma, xi
 
     @staticmethod
