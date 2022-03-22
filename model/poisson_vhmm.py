@@ -75,6 +75,4 @@ class PoissonVHMM(VHMMBase):
                                   self.poisson_posterior_b,
                                   self.poisson_prior_a,
                                   self.poisson_prior_b)
-                - self._kl_hidden_state(gamma, xi)
-                - self._kl_initial_state()
-                - self._kl_state_transition())
+                - self.kl_partial(gamma, xi))

@@ -255,3 +255,6 @@ class VHMMBase(HMMBase):
         q = xi
         term2 = VHMMBase._kl_categorical(q, log_p)
         return term1 + term2
+
+    def kl_partial(self, gamma, xi):
+        return self._kl_hidden_state(gamma, xi) + self._kl_initial_state() + self._kl_state_transition()
