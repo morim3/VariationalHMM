@@ -125,7 +125,7 @@ class HMMBase:
     @jit
     def _calc_xi(forward, backward, trans_log_prob, obs_log_probs):
         not_normed = forward[:-1][..., jnp.newaxis] + jnp.expand_dims(trans_log_prob, axis=(0, 1)) \
-                   + (obs_log_probs[1:] + backward[1:])[..., jnp.newaxis, :]
+                     + (obs_log_probs[1:] + backward[1:])[..., jnp.newaxis, :]
         normed = not_normed - logsumexp(not_normed, axis=-1, keepdims=True)
         return jnp.exp(normed)
 
@@ -195,7 +195,7 @@ class VHMMBase(HMMBase):
 
     def trans_log_prob(self):
         return digamma(self.transition_posterior) \
-               - digamma(jnp.sum(self.transition_posterior, axis=1))[..., jnp.newaxis]
+               - digamma(jnp.sum(self.transition_posterior, axis=-1))[..., jnp.newaxis]
 
     def initial_log_prob(self):
         return digamma(self.init_state_posterior) - digamma(jnp.sum(self.init_state_posterior))
@@ -217,9 +217,9 @@ class VHMMBase(HMMBase):
     @staticmethod
     @jit
     def _kl_dirichlet_dirichlet(q, p):
-        term1 = lgamma(jnp.sum(q)) - jnp.sum(lgamma(q))
-        term2 = - lgamma(jnp.sum(p)) + jnp.sum(lgamma(p))
-        term3 = jnp.sum((p - q) * (digamma(q) - digamma(jnp.sum(q))))
+        term1 = -lgamma(jnp.sum(p)) + jnp.sum(lgamma(p))
+        term2 = lgamma(jnp.sum(q)) - jnp.sum(lgamma(q))
+        term3 = jnp.sum((q - p) * (digamma(q) - digamma(jnp.sum(q))))
         return term1 + term2 + term3
 
     @staticmethod
