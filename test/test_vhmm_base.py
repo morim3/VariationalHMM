@@ -1,6 +1,6 @@
 from unittest import TestCase
 import unittest
-from model.vhmm_base import HMMBase, VHMMBase
+from VariationalHMM.vhmm_base import HMMBase, VHMMBase
 import jax.numpy as jnp
 import numpy as np
 
