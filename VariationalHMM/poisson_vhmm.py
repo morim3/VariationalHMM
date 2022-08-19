@@ -2,7 +2,7 @@ from jax import jit
 from jax.scipy.special import digamma, gammaln
 import jax.numpy as jnp
 
-from model.vhmm_base import VHMMBase
+from .vhmm_base import VHMMBase
 import numpy as np
 
 
