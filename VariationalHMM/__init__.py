@@ -1,0 +1,1 @@
+from VariationalHMM.VariationalHMM import *
