@@ -15,7 +15,7 @@ setup(
     description="Jax-Implementation of Variational Hidden Markov Model",
     author="Kohei Morimoto",
     url="https://github.com/morim3/VariationalHMM",
-    packages=[VariationalHMM],
+    packages=["VariationalHMM"],
     include_package_data=True,
     zip_safe=False,
     install_requires=_requires_from_file('requirements.txt'),
