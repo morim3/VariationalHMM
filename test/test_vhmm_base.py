@@ -21,10 +21,10 @@ class TestVHMMBase(TestCase):
 
     def test_expectation(self):
         test_obs = jnp.ones((100, 3, 2))
-        forward, backward, _ = HMMBase._e_step(test_obs, jnp.log(jnp.array([0.8, 0.1])),
+        forward, backward = HMMBase._e_step(test_obs, jnp.log(jnp.array([0.8, 0.1])),
                                                jnp.log(jnp.array([[0.1, 0.4], [0., 1.0]])), )
 
-        hidden = jnp.exp(forward + backward)
+        hidden = HMMBase._calc_gamma(forward, backward)
         self.assertAlmostEqual(hidden[-1, 0, 1], 1, delta=1e-5)
 
         test_obs = np.zeros((10, 3, 2))
@@ -34,8 +34,8 @@ class TestVHMMBase(TestCase):
         forward, backward = HMMBase._e_step(test_obs, jnp.log(jnp.array([0.5, 0.5])),
                                                jnp.log(jnp.array([[0.9, 0.1], [0.1, 0.9]])), )
 
-        self.assertTrue(jnp.all(jnp.abs(jnp.sum(jnp.exp(forward), axis=-1) - jnp.ones_like(forward[..., 0])) < 1e-6))
-        hidden = jnp.exp(forward + backward)
+
+        hidden = HMMBase._calc_gamma(forward, backward)
         self.assertTrue(hidden[0, 0, 1] > hidden[0, 0, 0])
         self.assertTrue(hidden[-1, 0, 1] < hidden[-1, 0, 0])
         self.assertTrue(jnp.all(jnp.abs(jnp.sum(hidden, axis=-1) - jnp.ones_like(hidden[..., 0])) < 1e-6))
