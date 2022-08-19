@@ -31,7 +31,7 @@ class TestVHMMBase(TestCase):
         test_obs[:5, :, 0] = -1.
         test_obs[5:, :, 0] = 1.
         test_obs = jnp.array(test_obs)
-        forward, backward, _ = HMMBase._e_step(test_obs, jnp.log(jnp.array([0.5, 0.5])),
+        forward, backward = HMMBase._e_step(test_obs, jnp.log(jnp.array([0.5, 0.5])),
                                                jnp.log(jnp.array([[0.9, 0.1], [0.1, 0.9]])), )
 
         self.assertTrue(jnp.all(jnp.abs(jnp.sum(jnp.exp(forward), axis=-1) - jnp.ones_like(forward[..., 0])) < 1e-6))
