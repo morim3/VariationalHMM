@@ -7,5 +7,11 @@
 
 💫 Implements "Temporal Parallelization of Inference in Hidden Markov Models" to achieve fast parallel inference.
 
+## Usage
+This package is for Linux system as it depends on jaxlib.
+```
+pip install VariationalHMM
+```
+
 ## Reference 
 https://arxiv.org/pdf/2102.05743.pdf
